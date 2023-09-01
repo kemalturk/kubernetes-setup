@@ -13,8 +13,8 @@ metadata:
   name: ecr-registry-helper-secrets
   namespace: antalya-software
 stringData:
-  AWS_SECRET_ACCESS_KEY: ""
   AWS_ACCESS_KEY_ID: ""
+  AWS_SECRET_ACCESS_KEY: ""
   AWS_ACCOUNT: ""
 
 ---
@@ -46,7 +46,7 @@ spec:
           serviceAccountName: sa-ecr-registry-helper
           containers:
           - name: ecr-registry-helper
-            image: odaniait/aws-kubectl:latest
+            image: kmltrk/aws-kubectl:latest
             imagePullPolicy: IfNotPresent
             envFrom:
             - secretRef:
@@ -56,7 +56,7 @@ spec:
             command:
             - /bin/sh
             - -c
-            - |-
+            - |
               ECR_TOKEN=`aws ecr get-login-password --region ${AWS_REGION}`
               NAMESPACE_NAME=antalya-software
               kubectl delete secret --ignore-not-found $DOCKER_SECRET_NAME -n $NAMESPACE_NAME
