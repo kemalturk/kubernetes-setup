@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: antalya-software
+  labels:
+    name: antalya-software
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ecr-registry-helper-secrets
+  namespace: antalya-software
+stringData:
+  AWS_SECRET_ACCESS_KEY: ""
+  AWS_ACCESS_KEY_ID: ""
+  AWS_ACCOUNT: ""
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ecr-registry-helper-cm
+  namespace: antalya-software
+data:
+  AWS_REGION: "us-east-1"
+  DOCKER_SECRET_NAME: regcred
+
+---
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ecr-registry-helper
+  namespace: antalya-software
+spec:
+  schedule: "0 */10 * * *"
+  successfulJobsHistoryLimit: 3
+  suspend: false
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: sa-ecr-registry-helper
+          containers:
+          - name: ecr-registry-helper
+            image: odaniait/aws-kubectl:latest
+            imagePullPolicy: IfNotPresent
+            envFrom:
+            - secretRef:
+                name: ecr-registry-helper-secrets
+            - configMapRef:
+                name: ecr-registry-helper-cm
+            command:
+            - /bin/sh
+            - -c
+            - |-
+              ECR_TOKEN=`aws ecr get-login-password --region ${AWS_REGION}`
+              NAMESPACE_NAME=antalya-software
+              kubectl delete secret --ignore-not-found $DOCKER_SECRET_NAME -n $NAMESPACE_NAME
+              kubectl create secret docker-registry $DOCKER_SECRET_NAME \
+              --docker-server=https://${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com \
+              --docker-username=AWS \
+              --docker-password="${ECR_TOKEN}" \
+              --namespace=$NAMESPACE_NAME
+              echo "Secret was successfully updated at $(date)"
+          restartPolicy: Never
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sa-ecr-registry-helper
+  namespace: antalya-software
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: antalya-software
+  name: role-full-access-to-secrets
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["regcred"]
+  verbs: ["delete"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["create"]
+
+---
+
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ecr-registry-helper-role-binding
+  namespace: antalya-software
+subjects:
+- kind: ServiceAccount
+  name: sa-ecr-registry-helper
+  namespace: antalya-software
+  apiGroup: ""
+roleRef:
+  kind: Role
+  name: role-full-access-to-secrets
+  apiGroup: ""
