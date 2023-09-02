@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/bash
 set -e
 
 echo "Retrieving Docker Credentials for the AWS ECR Registry ${AWS_ACCOUNT}"
