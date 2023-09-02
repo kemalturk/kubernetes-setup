@@ -46,7 +46,7 @@ spec:
           serviceAccountName: sa-ecr-registry-helper
           containers:
           - name: ecr-registry-helper
-            image: kmltrk/aws-kubectl:latest
+            image: kmltrk/aws-kubectl:0.0.1
             imagePullPolicy: IfNotPresent
             envFrom:
             - secretRef:
@@ -56,18 +56,22 @@ spec:
             command:
             - /bin/sh
             - -c
-            - |
+            - |-
+              echo "Retrieving Docker Credentials for the AWS ECR Registry ${AWS_ACCOUNT}"
               ECR_TOKEN=`aws ecr get-login-password --region ${AWS_REGION}`
               NAMESPACE_NAME=antalya-software
-              kubectl delete secret --ignore-not-found $DOCKER_SECRET_NAME -n $NAMESPACE_NAME
-              kubectl create secret docker-registry $DOCKER_SECRET_NAME \
+              echo
+              echo "Working in Namespace ${NAMESPACE_NAME}"
+              echo
+              kubectl delete secret --ignore-not-found ${DOCKER_SECRET_NAME} -n ${NAMESPACE_NAME}
+              kubectl create secret docker-registry ${DOCKER_SECRET_NAME} \
               --docker-server=https://${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com \
               --docker-username=AWS \
               --docker-password="${ECR_TOKEN}" \
-              --namespace=$NAMESPACE_NAME
+              --namespace=${NAMESPACE_NAME}
               echo "Secret was successfully updated at $(date)"
           restartPolicy: Never
-
+          
 ---
 
 apiVersion: v1
