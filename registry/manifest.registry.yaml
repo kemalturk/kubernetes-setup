@@ -61,7 +61,11 @@ spec:
               ECR_TOKEN=`aws ecr get-login-password --region ${AWS_REGION}`
               NAMESPACE_NAME=antalya-software
               echo
-              echo "Working in Namespace ${NAMESPACE_NAME}"
+              echo "Namespace: ${NAMESPACE_NAME}"
+              echo "Region: ${AWS_REGION}"
+              echo "Account: ${AWS_ACCOUNT}"
+              echo "Docker Secret Name: ${DOCKER_SECRET_NAME}"
+              echo "ECR Token: ${ECR_TOKEN}"
               echo
               kubectl delete secret --ignore-not-found ${DOCKER_SECRET_NAME} -n ${NAMESPACE_NAME}
               kubectl create secret docker-registry ${DOCKER_SECRET_NAME} \
