@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ecr-registry-helper-1
+  namespace: antalya-software
+spec:
+  suspend: false
+  template:
+    spec:
+      serviceAccountName: sa-ecr-registry-helper
+      containers:
+      - name: ecr-registry-helper
+        image: kmltrk/aws-kubectl:0.0.1
+        imagePullPolicy: Always
+        envFrom:
+        - secretRef:
+            name: ecr-registry-helper-secrets
+        - configMapRef:
+            name: ecr-registry-helper-cm
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          aws configure set aws_access_key_id ${AWS_ACCESS_KEY_ID}
+          aws configure set aws_secret_access_key ${AWS_SECRET_ACCESS_KEY}
+          aws configure set aws_account ${AWS_ACCOUNT}
+          aws configure set region ${AWS_REGION}
+          echo "---"
+          aws configure get aws_access_key_id
+          aws configure get aws_secret_access_key
+          aws configure get aws_account
+          aws configure get region
+          echo "---"
+          echo
+          echo "Retrieving Docker Credentials for the AWS ECR Registry ${AWS_ACCOUNT}"
+          ECR_TOKEN=`aws ecr get-login-password --debug --region ${AWS_REGION}`
+          NAMESPACE_NAME=antalya-software
+          echo
+          echo "Namespace: ${NAMESPACE_NAME}"
+          echo "Region: ${AWS_REGION}"
+          echo "Account: ${AWS_ACCOUNT}"
+          echo "Docker Secret Name: ${DOCKER_SECRET_NAME}"
+          echo "ECR Token: ${ECR_TOKEN}"
+          echo
+          kubectl delete secret --ignore-not-found ${DOCKER_SECRET_NAME} -n ${NAMESPACE_NAME}
+          kubectl create secret docker-registry ${DOCKER_SECRET_NAME} \
+          --docker-server=https://${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com \
+          --docker-username=AWS \
+          --docker-password="${ECR_TOKEN}" \
+          --namespace=${NAMESPACE_NAME}
+          echo "Secret was successfully updated at $(date)"
+      restartPolicy: Never
