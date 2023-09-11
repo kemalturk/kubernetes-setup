@@ -1,13 +1,4 @@
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: antalya-software
-  labels:
-    name: antalya-software
-
----
-
-apiVersion: v1
 kind: Secret
 metadata:
   name: ecr-registry-helper-secrets
@@ -76,7 +67,7 @@ spec:
               echo "Secret was successfully updated at $(date)"
           restartPolicy: Never
           nodeSelector:
-            kubernetes.io/hostname: ip-172-31-47-85
+            kubernetes.io/hostname: ip-172-31-36-128
           
 ---
 
